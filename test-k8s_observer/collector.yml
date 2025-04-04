@@ -1,0 +1,63 @@
+---
+mode: "daemonset"
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: latest
+presets:
+  logsCollection:
+    enabled: true
+
+clusterRole:
+  create: true
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    - services
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - "networking.k8s.io"
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - watch
+    - list
+config:
+  exporters:
+    debug:
+      verbosity: detailed
+  extensions:
+    k8s_observer:
+      observe_pods: true
+      observe_nodes: true
+      observe_services: true
+      observe_ingresses: true
+    health_check:
+      endpoint: ${env:MY_POD_IP}:13133
+  receivers:
+    receiver_creator/logs:
+      watch_observers: [k8s_observer]
+      discovery:
+        enabled: true
+      receivers:
+    prometheus: null
+    zipkin: null
+  service:
+    telemetry: {}
+    extensions: [k8s_observer, health_check]
+    pipelines:
+      metrics: null
+      traces: null
+      logs:
+        receivers:
+          - receiver_creator/logs
+        processors:
+          - batch
+        exporters:
+          - debug
