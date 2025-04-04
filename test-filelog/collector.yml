@@ -1,59 +1,53 @@
 ---
 mode: "daemonset"
 image:
+  # Use the OpenTelemetry Collector Contrib image
+  # This image contains the filelog receiver.
   repository: otel/opentelemetry-collector-contrib
   tag: latest
 presets:
+  # Mount the /var/log/pods directory to the container
+  # This is where the logs are stored
   logsCollection:
     enabled: true
-
-# clusterRole:
-#   create: true
-#   rules:
-#   - apiGroups:
-#     - ""
-#     resources:
-#     - nodes
-#     - services
-#     - pods
-#     verbs:
-#     - get
-#     - list
-#     - watch
-#   - apiGroups:
-#     - "networking.k8s.io"
-#     resources:
-#     - ingresses
-#     verbs:
-#     - get
-#     - watch
-#     - list
 config:
   exporters:
+    # Debug exporter to see the logs in the console
     debug:
       verbosity: detailed
   extensions:
+    # Health check extension to check the health of the collector
     health_check:
       endpoint: ${env:MY_POD_IP}:13133
   receivers:
+    # Receiver to read the Apache logs
     filelog:
       include:
         - /var/log/pods/*_apache*/*/*.log
       start_at: end
       operators:
+        # Operator to parse the container logs
         - type: container
           id: container-parser
+        # Operator to parse the Apache logs
+        # This operator uses a regex to parse the logs
         - id: apache-logs
           type: regex_parser
           regex: ^(?P<source_ip>\d+\.\d+.\d+\.\d+)\s+-\s+-\s+\[(?P<timestamp_log>\d+/\w+/\d+:\d+:\d+:\d+\s+\+\d+)\]\s"(?P<http_method>\w+)\s+(?P<http_path>.*)\s+(?P<http_version>.*)"\s+(?P<http_code>\d+)\s+(?P<http_size>\d+)$
+    # Disable the default receivers
     prometheus: null
     zipkin: null
   service:
+    # disable the default telemetry
     telemetry: {}
+    # enable the Health check extension
     extensions: [health_check]
+    # pipelines to process the logs
     pipelines:
+      # disable the default pipelines
       metrics: null
       traces: null
+      # pipeline to process the logs
       logs:
         receivers:
           - filelog

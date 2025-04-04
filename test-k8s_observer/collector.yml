@@ -1,12 +1,16 @@
 ---
 mode: "daemonset"
 image:
+  # Use the OpenTelemetry Collector Contrib image
+  # This image contains the k8s observer.
   repository: otel/opentelemetry-collector-contrib
   tag: latest
+# Mount the /var/log/pods directory to the container
+# This is where the logs are stored
 presets:
   logsCollection:
     enabled: true
-
+# Give the OpenTelemetry Collector permissions to read k8s resources.
 clusterRole:
   create: true
   rules:
@@ -30,30 +34,41 @@ clusterRole:
     - list
 config:
   exporters:
+    # Debug exporter to see the logs in the console
     debug:
       verbosity: detailed
   extensions:
+    # Kubernetes observer to discover the pods, nodes, services and ingresses
     k8s_observer:
       observe_pods: true
       observe_nodes: true
       observe_services: true
       observe_ingresses: true
+    # Health check extension to check the health of the collector
     health_check:
       endpoint: ${env:MY_POD_IP}:13133
   receivers:
+    # Receiver to watch the pods and discover the logs
     receiver_creator/logs:
       watch_observers: [k8s_observer]
       discovery:
         enabled: true
       receivers:
+    # Disable the default receivers
     prometheus: null
     zipkin: null
   service:
+    # Disable the default telemetry
     telemetry: {}
+    # Enable the health check extension
+    # and the k8s observer extension
     extensions: [k8s_observer, health_check]
+    # Define the pipelines for the logs
     pipelines:
+      # Disable the default pipelines
       metrics: null
       traces: null
+      # Define the logs pipeline
       logs:
         receivers:
           - receiver_creator/logs
