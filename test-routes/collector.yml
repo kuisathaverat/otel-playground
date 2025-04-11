@@ -1,0 +1,64 @@
+---
+mode: "daemonset"
+image:
+  # Use the OpenTelemetry Collector Contrib image
+  # This image contains the filelog receiver.
+  repository: otel/opentelemetry-collector-contrib
+  tag: latest
+presets:
+  # Mount the /var/log/pods directory to the container
+  # This is where the logs are stored
+  logsCollection:
+    enabled: true
+config:
+  exporters:
+    # Debug exporter to see the logs in the console
+    debug:
+      verbosity: detailed
+  extensions:
+    # Health check extension to check the health of the collector
+    health_check:
+      endpoint: ${env:MY_POD_IP}:13133
+  receivers:
+    # Receiver to read the Apache logs
+    filelog:
+      include:
+        - /var/log/pods/*_apache*/*/*.log
+      start_at: end
+      operators:
+        # Operator to parse the container logs
+        - type: container
+          id: container-parser
+        - id: choose-operator
+          type: router
+          routes:
+            - output: add-attribute
+              expr: 'not(body-message matches "^\\[.*")'
+          default: noop
+        - id: add-attribute
+          type: add
+          field: attributes.test
+          value: match
+        - id: noop
+          type: noop
+# Disable the default receivers
+    prometheus: null
+    zipkin: null
+  service:
+    # disable the default telemetry
+    telemetry: {}
+    # enable the Health check extension
+    extensions: [health_check]
+    # pipelines to process the logs
+    pipelines:
+      # disable the default pipelines
+      metrics: null
+      traces: null
+      # pipeline to process the logs
+      logs:
+        receivers:
+          - filelog
+        processors:
+          - batch
+        exporters:
+          - debug
