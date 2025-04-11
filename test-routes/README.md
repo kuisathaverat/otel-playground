@@ -28,28 +28,30 @@ The `not()` or `!()` expresions are not correctly evaluated in the current versi
 for the log line `10.1.47.1 - - [11/Apr/2025:11:36:55 +0000] "GET / HTTP/1.1" 200 45` the following snippet is expected:
 
 ```log
-2025-04-11T11:36:55.356Z        warn    router/transformer.go:66        Running expression returned an error    {"operator_id": "choose-operator", "operator_type": "router", "entry.timestamp": "2025-04-11T11:36:55.337Z", "logtag": "F", "log.file.path": "/var/log/pods/default_apache-7b8dc8dc56-mjg6t_10a61802-2841-4492-850d-d5cec6801b51/apache/0.log", "log.iostream": "stdout", "error": "invalid operation: string - <nil> (1:9)\n | not(body-message matches \"^\\\\[.*\")\n | ........^"}
-2025-04-11T11:36:55.577Z        info    Logs    {"resource logs": 1, "log records": 1}
-2025-04-11T11:36:55.577Z        info    ResourceLog #0
+2025-04-11T14:59:02.928Z        info    Logs    {"resource logs": 1, "log records": 1}
+2025-04-11T14:59:02.928Z        info    ResourceLog #0
 Resource SchemaURL:
 Resource attributes:
+     -> k8s.pod.uid: Str(6ff079f6-8f67-4900-a684-0eef2e118cf1)
      -> k8s.container.name: Str(apache)
      -> k8s.namespace.name: Str(default)
-     -> k8s.pod.name: Str(apache-7b8dc8dc56-mjg6t)
+     -> k8s.pod.name: Str(apache-7b8dc8dc56-trpzr)
      -> k8s.container.restart_count: Str(0)
-     -> k8s.pod.uid: Str(10a61802-2841-4492-850d-d5cec6801b51)
 ScopeLogs #0
 ScopeLogs SchemaURL:
 InstrumentationScope
 LogRecord #0
-ObservedTimestamp: 2025-04-11 11:36:55.355721562 +0000 UTC
-Timestamp: 2025-04-11 11:36:55.337742535 +0000 UTC
+ObservedTimestamp: 2025-04-11 14:59:02.627892166 +0000 UTC
+Timestamp: 2025-04-11 14:59:02.587253662 +0000 UTC
 SeverityText:
 SeverityNumber: Unspecified(0)
-Body: Str(10.1.47.1 - - [11/Apr/2025:11:36:55 +0000] "GET / HTTP/1.1" 200 45)
+Body: Str(10.1.47.1 - - [11/Apr/2025:14:59:02 +0000] "GET / HTTP/1.1" 200 45)
 Attributes:
-     -> log.file.path: Str(/var/log/pods/default_apache-7b8dc8dc56-mjg6t_10a61802-2841-4492-850d-d5cec6801b51/apache/0.log)
      -> log.iostream: Str(stdout)
+     -> msg: Str(10.1.47.1 - - [11/Apr/2025:14:59:02 +0000] "GET / HTTP/1.1" 200 45)
+     -> expr: Bool(true)
+     -> test: Str(match)
+     -> log.file.path: Str(/var/log/pods/default_apache-7b8dc8dc56-trpzr_6ff079f6-8f67-4900-a684-0eef2e118cf1/apache/0.log)
      -> logtag: Str(F)
 Trace ID:
 Span ID:

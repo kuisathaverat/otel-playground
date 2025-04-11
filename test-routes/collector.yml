@@ -29,11 +29,19 @@ config:
         # Operator to parse the container logs
         - type: container
           id: container-parser
+        - id: add-attribute-00
+          type: add
+          field: attributes.msg
+          value: EXPR(body)
+        - id: add-attribute-01
+          type: add
+          field: attributes.expr
+          value: EXPR(not(body matches "^\\[.*"))
         - id: choose-operator
           type: router
           routes:
             - output: add-attribute
-              expr: 'not(body-message matches "^\\[.*")'
+              expr: 'not(body matches "^\\[.*")'
           default: noop
         - id: add-attribute
           type: add
