@@ -1,0 +1,68 @@
+---
+mode: "daemonset"
+image:
+  # Use the OpenTelemetry Collector Contrib image
+  # This image contains the filelog receiver.
+  repository: otel/opentelemetry-collector-contrib
+  tag: latest
+presets:
+  # Mount the /var/log/pods directory to the container
+  # This is where the logs are stored
+  logsCollection:
+    enabled: true
+config:
+  exporters:
+    # Debug exporter to see the logs in the console
+    debug:
+      verbosity: detailed
+  extensions:
+    # Health check extension to check the health of the collector
+    health_check:
+      endpoint: ${env:MY_POD_IP}:13133
+  processors:
+    transform/log:
+  #    error_mode: ignore
+      log_statements:
+        - statements:
+            - set(resource.attributes["type"], "access_log")
+            - 'merge_maps(log.attributes, ExtractPatterns(log.body, "^(?P<source_ip>\\d+\\.\\d+.\\d+\\.\\d+)\\s+-\\s+-\\s+\\[(?P<timestamp_log>\\d+/\\w+/\\d+:\\d+:\\d+:\\d+\\s+\\+\\d+)\\]\\s\"(?P<http_method>\\w+)\\s+(?P<http_path>.*)\\s+(?P<http_version>.*)\"\\s+(?P<http_code>\\d+)\\s+(?P<http_size>\\d+)$"), "upsert")'
+          conditions:
+            - 'IsMatch(log.body, "^\\d+\\.\\d+.\\d+\\.\\d+.*")'
+        - statements:
+            - set(resource.attributes["type"], "apache")
+            - 'merge_maps(log.attributes, ExtractPatterns(log.body, "^\\[(?P<timestamp_field>[^\\]]*)\\] \\[(?P<apache_error_module>[^:]*):(?P<apache_error_level>[^]]*)\\] \\[pid (?P<process_pid>\\d+):tid (?P<process_thread_id>\\d+)\\] (?P<message>.*)$"), "upsert")'
+          conditions:
+            - 'IsMatch(log.body, "^\\[[a-zA-Z]+[^\\]]*\\].*")'
+        - statements:
+            - set(resource.attributes["type"], "bitnami")
+            - 'merge_maps(log.attributes, ExtractPatterns(log.body, "^\\[\\d+;\\d+;\\d+mapache(?P<message>.*)"), "upsert")'
+          conditions:
+            - 'IsMatch(log.body, "^\\[\\d+;\\d+;\\d+mapache.*")'
+  receivers:
+    # Receiver to read the Apache logs
+    filelog:
+      include:
+        - /var/log/pods/*_apache*/*/*.log
+      start_at: end
+# Disable the default receivers
+    prometheus: null
+    zipkin: null
+  service:
+    # disable the default telemetry
+    telemetry: {}
+    # enable the Health check extension
+    extensions: [health_check]
+    # pipelines to process the logs
+    pipelines:
+      # disable the default pipelines
+      metrics: null
+      traces: null
+      # pipeline to process the logs
+      logs:
+        receivers:
+          - filelog
+        processors:
+          - batch
+          - transform/log
+        exporters:
+          - debug
